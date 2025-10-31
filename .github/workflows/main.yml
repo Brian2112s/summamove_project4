@@ -1,4 +1,4 @@
-name: Static Site CI/CD
+name: Deploy Static Site via Docker
 
 on:
   push:
@@ -7,27 +7,25 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-and-deploy:
+  docker-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📦 Checkout code
+      - name: 📦 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🧱 Build Docker image
+      - name: 🐳 Build Docker image
         run: docker build -t static-site .
 
-      - name: 🧪 Run container for validation
-        run: |
-          echo "🚀 Starting Docker container for testing..."
-          docker run -d -p 8080:80 --name test-container static-site
-          sleep 5
-          echo "🌐 Testing if index.html is served..."
-          curl -I http://localhost:8080 | grep "200 OK"
-          docker stop test-container
-          echo "✅ Site served successfully!"
-
-      - name: 🗂️ Upload site artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: 🔑 Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          path: ./   # of ./public/ als je bestanden daarin hebt
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📤 Push Docker image to GHCR
+        run: |
+          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/static-site
+          docker tag static-site $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:latest
