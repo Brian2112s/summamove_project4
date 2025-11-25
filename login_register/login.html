@@ -41,7 +41,7 @@
 
     <script>
         "use strict";
-        const apiBasis = "http://localhost:8000/api/login";
+        const API_URL = "https://laravel-backend-latest.onrender.com/api/login";
 
         const login = async (event) => {
             event.preventDefault();  
@@ -51,7 +51,7 @@
             const loginData = { email, password };
 
             try {
-                const response = await axios.post(apiBasis, loginData, {
+                const response = await axios.post(API_URL, loginData, {
                     headers: { 'Content-Type': 'application/json' }
                 });
 
@@ -71,9 +71,14 @@
             } catch (error) {
                 console.error('Login fout:', error);
                 document.querySelector("#loginFeedback").style.color = "red";
-                document.querySelector("#loginFeedback").textContent = "Login mislukt, probeer opnieuw.";
+                if (error.response && error.response.data && error.response.data.message) {
+                    document.querySelector("#loginFeedback").textContent = `Login mislukt: ${error.response.data.message}`;
+                } else {
+                    document.querySelector("#loginFeedback").textContent = "Login mislukt, probeer opnieuw.";
+                }
             }
         };
     </script>
+
 </body>
 </html>

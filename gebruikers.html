@@ -1,233 +1,113 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gebruikers</title>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <link rel="stylesheet" href="./style/home.css">
-</head>
-<body>
-    <div class="header-nav-container">
-        <header class="header-nav">
-            <nav class="navbar">
-                <div class="logo">
-                    <img src="./images/logoproject4.png" alt="Logo" />
-                </div>
-                <div class="nav-links">
-                    <ul>
-                        <li><a href="home.html">Home</a></li>
-                        <li><a href="./oefeningen.html">Oefeningen</a></li>
-                        <li><a href="about.html">About</a></li>
-                        <li><a href="./login_register/login.html">Login</a></li>
-                    </ul>
-                </div>
-            </nav>
-        </header>
-    </div>
-    <div class="gebruikers-header">
-        <h1>Gebruikers</h1>
-        <button id="add-button" onclick="showAddUserForm()">+</button>
-    </div>
-    <div id="users-container"></div>
-    <div class="form-container" id="form-container">
-        <h2>Nieuwe Gebruiker Toevoegen</h2>
-        <input type="text" id="name" placeholder="Naam">
-        <input type="email" id="email" placeholder="Email">
-        <input type="password" id="password" placeholder="Wachtwoord">
-        <input type="password" id="password_confirmation" placeholder="Bevestig Wachtwoord">
-        <button id="voeg-toe-button" onclick="addUser()">Voeg Gebruiker Toe</button>
-        <button id="back-button" onclick="hideAddUserForm()"><img src="./images/backbutton.png" alt="Back"></button>
-    </div>
-    <div class="form-container" id="update-form-container" style="display: none;">
-        <h2>Gebruiker Bijwerken</h2>
-        <input type="hidden" id="update-user-id">
-        <input type="text" id="update-name" placeholder="Naam">
-        <input type="email" id="update-email" placeholder="Email">
-        <button id="update-button" onclick="updateUser()">Bijwerken</button>
-        <button id="back-button" onclick="hideUpdateUserForm()"><img src="./images/backbutton.png" alt="Back"></button>
-    </div>
+<script>
+    const API_URL = "https://laravel-backend-latest.onrender.com/api";
 
-    <script>
-        const fetchAndDisplayUsers = async () => {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                console.error('No access token found in local storage');
-                return;
+    const fetchAndDisplayUsers = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return console.error('No access token found in local storage');
+
+        try {
+            const response = await axios.get(`${API_URL}/users`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const users = response.data;
+            const usersContainer = document.getElementById('users-container');
+            usersContainer.innerHTML = '';
+
+            users.forEach(user => {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'user';
+
+                let roleDisplay;
+                if (user.role === 'admin') roleDisplay = 'Beheerder';
+                else if (user.role === 'member') roleDisplay = 'Lid';
+                else roleDisplay = 'Er is iets fout gegaan!';
+
+                userDiv.innerHTML = `
+                    <div class='gebruikersdiv'>
+                        <h4>Naam: ${user.name}</h4>
+                        <h4>Email: ${user.email}</h4>
+                        <h4>Rol: ${roleDisplay}</h4>
+                        <button onclick="showUpdateUserForm(${user.id}, '${user.name}', '${user.email}')">Bijwerken</button>
+                        <button onclick="deleteUser(${user.id})">Verwijderen</button>
+                    </div>
+                `;
+                usersContainer.appendChild(userDiv);
+            });
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        }
+    };
+
+    const addUser = async () => {
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const passwordConfirmation = document.getElementById('password_confirmation').value;
+        const token = localStorage.getItem('access_token');
+        if (!token) return console.error('No access token found in local storage');
+
+        try {
+            const response = await axios.post(`${API_URL}/register`, {
+                name,
+                email,
+                password,
+                password_confirmation: passwordConfirmation
+            }, { headers: { 'Authorization': `Bearer ${token}` } });
+
+            if (response.status === 200 || response.status === 201) {
+                alert('Gebruiker succesvol toegevoegd');
+                fetchAndDisplayUsers();
+                hideAddUserForm();
             }
+        } catch (error) {
+            console.error('Error adding user:', error);
+        }
+    };
 
-            try {
-                const response = await axios.get('http://localhost:8000/api/users', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                const users = response.data;
+    const deleteUser = async (id) => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return console.error('No access token found in local storage');
 
-                const usersContainer = document.getElementById('users-container');
-                usersContainer.innerHTML = '';
+        const loggedInUserId = localStorage.getItem('user_id');
+        if (id == loggedInUserId) return alert('Cannot delete yourself while logged in');
 
-                users.forEach(user => {
-                    const userDiv = document.createElement('div');
-                    userDiv.className = 'user';
+        try {
+            const response = await axios.delete(`${API_URL}/users/${id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
 
-                    let roleDisplay;
-                    if (user.role === 'admin') {
-                        roleDisplay = 'Beheerder';
-                    } else if (user.role === 'member') {
-                        roleDisplay = 'Lid';
-                    } else {
-                        roleDisplay = 'Er is iets fout gegaan!';
-                    }
-
-                    userDiv.innerHTML = `
-                        <div class='gebruikersdiv'>
-                            <h4>Naam: ${user.name}</h4>
-                            <h4>Email: ${user.email}</h4>
-                            <h4>Rol: ${roleDisplay}</h4>
-                            <button id='update-button' onclick="showUpdateUserForm(${user.id}, '${user.name}', '${user.email}')">Bijwerken</button>
-                            <button id='delete-button' onclick="deleteUser(${user.id})">Verwijderen</button>
-                        </div>
-                    `;
-
-                    usersContainer.appendChild(userDiv);
-                });
-            } catch (error) {
-                console.error('Error fetching users:', error);
+            if (response.status === 200) {
+                alert('Gebruiker succesvol verwijderd');
+                fetchAndDisplayUsers();
             }
-        };
+        } catch (error) {
+            console.error('Error deleting user:', error);
+        }
+    };
 
-        const showAddUserForm = () => {
-            document.getElementById('users-container').style.display = 'none';
-            document.getElementById('add-button').style.display = 'none';
-            document.getElementById('form-container').style.display = 'flex';
-        };
+    const updateUser = async () => {
+        const id = document.getElementById('update-user-id').value;
+        const name = document.getElementById('update-name').value;
+        const email = document.getElementById('update-email').value;
+        const token = localStorage.getItem('access_token');
+        if (!token) return console.error('No access token found in local storage');
 
-        const hideAddUserForm = () => {
-            document.getElementById('users-container').style.display = 'block';
-            document.getElementById('add-button').style.display = 'block';
-            document.getElementById('form-container').style.display = 'none';
-        };
+        try {
+            const response = await axios.patch(`${API_URL}/users/${id}`, {
+                name,
+                email
+            }, { headers: { 'Authorization': `Bearer ${token}` } });
 
-        const showUpdateUserForm = (id, name, email) => {
-            document.getElementById('update-user-id').value = id;
-            document.getElementById('update-name').value = name;
-            document.getElementById('update-email').value = email;
-            document.getElementById('users-container').style.display = 'none';
-            document.getElementById('add-button').style.display = 'none';
-            document.getElementById('update-form-container').style.display = 'flex';
-        };
-
-        const hideUpdateUserForm = () => {
-            document.getElementById('users-container').style.display = 'block';
-            document.getElementById('add-button').style.display = 'block';
-            document.getElementById('update-form-container').style.display = 'none';
-        };
-
-        const addUser = async () => {
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const passwordConfirmation = document.getElementById('password_confirmation').value;
-
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                console.error('No access token found in local storage');
-                return;
+            if (response.status === 200) {
+                alert('Gebruiker succesvol bijgewerkt');
+                fetchAndDisplayUsers();
+                hideUpdateUserForm();
             }
+        } catch (error) {
+            console.error('Error updating user:', error);
+        }
+    };
 
-            try {
-                const response = await axios.post('http://localhost:8000/api/register', {
-                    name,
-                    email,
-                    password,
-                    password_confirmation: passwordConfirmation
-                }, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.status === 200) {
-                    alert('Gebruiker succesvol toegevoegd');
-                    fetchAndDisplayUsers();
-                    hideAddUserForm();
-                }
-            } catch (error) {
-                console.error('Error adding user:', error);
-            }
-        };
-
-        const deleteUser = async (id) => {
-            const token = localStorage.getItem('access_token');
-            console.log(token);
-            if (!token) {
-                console.error('No access token found in local storage');
-                return;
-            }
-        
-            let loggedInUserId;
-            try {
-                loggedInUserId = localStorage.getItem('user_id');
-                console.log(loggedInUserId);
-            } catch (error) {
-                console.error('Error decoding Bearer token:', error);
-                return;
-            }
-            console.log(id);
-            if (id == loggedInUserId) {
-                alert('Cannot delete yourself while logged in');
-                return;
-            }
-        
-            try {
-                const response = await axios.delete(`http://localhost:8000/api/users/${id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-        
-                if (response.status === 200) {
-                    alert('Gebruiker succesvol verwijderd');
-                    fetchAndDisplayUsers();
-                }
-            } catch (error) {
-                console.error('Error deleting user:', error);
-            }
-        };
-
-        const updateUser = async () => {
-            const id = document.getElementById('update-user-id').value;
-            const name = document.getElementById('update-name').value;
-            const email = document.getElementById('update-email').value;
-
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                console.error('No access token found in local storage');
-                return;
-            }
-
-            try {
-                const response = await axios.patch(`http://localhost:8000/api/users/${id}`, {
-                    name,
-                    email,
-                }, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.status === 200) {
-                    alert('Gebruiker succesvol bijgewerkt');
-                    fetchAndDisplayUsers();
-                    hideUpdateUserForm();
-                }
-            } catch (error) {
-                console.error('Error updating user:', error);
-            }
-        };
-
-        window.onload = fetchAndDisplayUsers;
-    </script>
-</body>
-</html>
+    window.onload = fetchAndDisplayUsers;
+</script>

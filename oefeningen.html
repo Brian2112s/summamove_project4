@@ -62,27 +62,20 @@
             }
         };
 
+        const API_URL = "https://laravel-backend-latest.onrender.com/api";
+
         const checkUserRole = async () => {
             const token = localStorage.getItem('access_token');
-            if (!token) {
-                return;
-            }
+            if (!token) return;
 
             try {
-                const response = await axios.get('http://localhost:8000/api/user', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                const response = await axios.get(`${API_URL}/user`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 const userRole = response.data.role;
-
-                if (userRole === 'admin') {
-                    showAdminButtons();
-                    return true;
-                } else {
-                    return false;
-                }
+                if (userRole === 'admin') showAdminButtons();
+                return userRole === 'admin';
             } catch (error) {
                 console.error('Error fetching user role:', error);
                 return false;
@@ -90,22 +83,18 @@
         };
 
         const getExercises = async (lang) => {
-            const apiEndpoint = `http://localhost:8000/api/exercises?lang=${lang}`;
             const token = localStorage.getItem('access_token');
 
             try {
-                const response = await axios.get(apiEndpoint, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                const response = await axios.get(`${API_URL}/exercises?lang=${lang}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 const exercises = response.data;
                 const oefeningenList = document.getElementById('oefeningenList');
+                oefeningenList.innerHTML = '';
 
-                oefeningenList.innerHTML = ''; // Clear existing content
-
-                const isAdminUser = await checkUserRole(); 
+                const isAdminUser = await checkUserRole();
 
                 exercises.forEach(exercise => {
                     const exerciseItem = document.createElement('div');
@@ -129,22 +118,17 @@
         };
 
         const getPrestaties = async () => {
-            const apiEndpoint = 'http://localhost:8000/api/achievements';
             const token = localStorage.getItem('access_token');
-
             if (!token) return;
 
             try {
-                const response = await axios.get(apiEndpoint, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                const response = await axios.get(`${API_URL}/achievements`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 const prestaties = response.data;
                 const prestatiesList = document.getElementById('prestatiesList');
-
-                prestatiesList.innerHTML = ''; // Clear existing content
+                prestatiesList.innerHTML = '';
 
                 prestaties.forEach(prestatie => {
                     const prestatieItem = document.createElement('div');
@@ -152,7 +136,7 @@
                     prestatieItem.innerHTML = `
                         <p>Naam gebruiker: ${prestatie.user_id}</p>
                         <p>Datum: ${prestatie.date}</p>
-                        <p>start tijd: ${prestatie.start_time}</p>
+                        <p>Start tijd: ${prestatie.start_time}</p>
                         <p>Eind tijd: ${prestatie.end_time}</p>
                         <p>Aantal keer: ${prestatie.end_time}</p>
                     `;
@@ -162,6 +146,7 @@
                 console.error('Fout bij het ophalen van prestaties:', error);
             }
         };
+
 
         const logout = () => {
             localStorage.removeItem('access_token');

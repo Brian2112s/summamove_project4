@@ -49,6 +49,8 @@
     </footer>
 </body>
 <script>
+    const API_URL = "https://laravel-backend-latest.onrender.com/api";
+
     const showUsersbutton = () => {
         const gebruikersnav = document.getElementsByClassName('hidegebruikers');
         for (let i = 0; i < gebruikersnav.length; i++) {
@@ -58,12 +60,10 @@
 
     const checkUserRole = async () => {
         const token = localStorage.getItem('access_token');
-        if (!token) {
-            return;
-        }
+        if (!token) return;
 
         try {
-            const response = await axios.get('http://localhost:8000/api/user', {
+            const response = await axios.get(`${API_URL}/user`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

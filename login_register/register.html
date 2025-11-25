@@ -40,8 +40,9 @@
     <script>
         "use strict";
 
+        const API_URL = "https://laravel-backend-latest.onrender.com/api";
+
         const registreer = async () => {
-            const api = "http://localhost:8000/api/register";
             const naam = document.querySelector("#naam").value;
             const email = document.querySelector("#email").value;
             const password = document.querySelector("#password").value;
@@ -62,10 +63,9 @@
                 password: password,
                 password_confirmation: passwordConfirmation
             };
-            console.log("voeg toe: ", jsonstring);
 
             try {
-                const respons = await axios.post(api, jsonstring, {
+                const respons = await axios.post(`${API_URL}/register`, jsonstring, {
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
@@ -73,16 +73,21 @@
                 });
 
                 if (respons.status === 200 || respons.status === 201) {
-                    document.querySelector("#registerFeedback").style.color = "blue"; // Verander kleur naar blauw
+                    document.querySelector("#registerFeedback").style.color = "blue";
                     document.querySelector("#registerFeedback").textContent = "Registratie succesvol! U wordt doorgestuurd naar de loginpagina.";
                     setTimeout(() => {
-                        window.location.href = "../login_register/login.html";  // Redirect to login page na 2 seconden
+                        window.location.href = "../login_register/login.html";
                     }, 2000);
                 }
             } catch (error) {
                 console.error("Er is een fout opgetreden:", error);
                 document.querySelector("#registerFeedback").style.color = "red";
-                document.querySelector("#registerFeedback").textContent = "Registratie mislukt. Probeer het opnieuw.";
+                if (error.response && error.response.data && error.response.data.errors) {
+                    const messages = Object.values(error.response.data.errors).flat().join(" ");
+                    document.querySelector("#registerFeedback").textContent = `Registratie mislukt: ${messages}`;
+                } else {
+                    document.querySelector("#registerFeedback").textContent = "Registratie mislukt. Probeer het opnieuw.";
+                }
             }
         };
 
@@ -109,5 +114,6 @@
             checkLoginStatus();
         };
     </script>
+
 </body>
 </html>
